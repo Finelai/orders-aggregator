@@ -64,4 +64,15 @@ describe("POST /webhooks/order", () => {
       expect((await postWebhook(ctx.app, apiOrder({ amountPaid }))).statusCode).toBe(400);
     }
   });
+
+  it("сохраняет суммы в точных целых копейках", async () => {
+    const order = apiOrder({ amount: 1.15, amountPaid: 0.29 });
+    expect((await postWebhook(ctx.app, order)).statusCode).toBe(200);
+    const { rows } = await ctx.db.query(
+      `SELECT amount_kop, amount_paid_kop FROM orders WHERE id = $1`,
+      [order.id],
+    );
+    expect(Number(rows[0].amount_kop)).toBe(115);
+    expect(Number(rows[0].amount_paid_kop)).toBe(29);
+  });
 });
