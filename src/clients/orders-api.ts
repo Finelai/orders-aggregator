@@ -42,13 +42,19 @@ export class HttpOrdersApi implements OrdersApi {
     if (!body || !Array.isArray(body.items)) {
       throw new UpstreamError(`unexpected /orders response: ${JSON.stringify(body).slice(0, 200)}`);
     }
-    return { items: body.items, nextCursor: typeof body.nextCursor === "string" ? body.nextCursor : null };
+    return {
+      items: body.items,
+      nextCursor: typeof body.nextCursor === "string" ? body.nextCursor : null,
+    };
   }
 
   async getCustomer(id: string): Promise<Customer | null> {
-    const body = (await this.request(new URL(`/customers/${encodeURIComponent(id)}`, this.baseUrl))) as Partial<Customer> | null;
+    const body = (await this.request(
+      new URL(`/customers/${encodeURIComponent(id)}`, this.baseUrl),
+    )) as Partial<Customer> | null;
     if (body === null) return null;
-    if (typeof body.timezone !== "string") throw new UpstreamError(`unexpected /customers response: ${JSON.stringify(body)}`);
+    if (typeof body.timezone !== "string")
+      throw new UpstreamError(`unexpected /customers response: ${JSON.stringify(body)}`);
     return { id, timezone: body.timezone };
   }
 
@@ -92,6 +98,8 @@ export class HttpOrdersApi implements OrdersApi {
       }
       return body;
     }
-    throw new UpstreamError(`${url.pathname}: no successful response after ${maxAttempts} attempts`);
+    throw new UpstreamError(
+      `${url.pathname}: no successful response after ${maxAttempts} attempts`,
+    );
   }
 }

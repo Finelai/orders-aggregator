@@ -4,7 +4,10 @@ export class CustomersRepository {
   constructor(private readonly db: Db) {}
 
   async getTimezone(id: string): Promise<string | null> {
-    const { rows } = await this.db.query<{ timezone: string }>(`SELECT timezone FROM customers WHERE id = $1`, [id]);
+    const { rows } = await this.db.query<{ timezone: string }>(
+      `SELECT timezone FROM customers WHERE id = $1`,
+      [id],
+    );
     return rows[0]?.timezone ?? null;
   }
 

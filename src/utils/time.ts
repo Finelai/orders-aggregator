@@ -25,7 +25,14 @@ export function tzOffsetMinutes(timeZone: string, at: Date): number {
     second: "2-digit",
   }).formatToParts(at);
   const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
-  const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  const asUtc = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour"),
+    get("minute"),
+    get("second"),
+  );
   return Math.round((asUtc - Math.floor(at.getTime() / 1000) * 1000) / 60_000);
 }
 
@@ -44,7 +51,11 @@ export function isCalendarDate(s: unknown): s is string {
 /** Все даты от from до to включительно. */
 export function datesBetween(from: string, to: string): string[] {
   const out: string[] = [];
-  for (let t = Date.parse(`${from}T00:00:00Z`); t <= Date.parse(`${to}T00:00:00Z`); t += 86_400_000) {
+  for (
+    let t = Date.parse(`${from}T00:00:00Z`);
+    t <= Date.parse(`${to}T00:00:00Z`);
+    t += 86_400_000
+  ) {
     out.push(new Date(t).toISOString().slice(0, 10));
   }
   return out;

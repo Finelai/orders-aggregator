@@ -21,7 +21,10 @@ export class OrdersService {
 
   normalize(raw: unknown): Order {
     const parsed = ExternalOrder.safeParse(raw);
-    if (!parsed.success) throw new ValidationError(`invalid order: ${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}`);
+    if (!parsed.success)
+      throw new ValidationError(
+        `invalid order: ${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}`,
+      );
     const o = parsed.data;
     try {
       return {

@@ -36,6 +36,16 @@ docker compose run --rm orders-api webhooks --target http://host.docker.internal
 npm test
 ```
 
+Проверка кода без изменения файлов:
+
+```bash
+npm run lint
+npm run format:check
+npm run typecheck
+```
+
+Biome проверяет исходный код и тесты. Для автоматического форматирования выполните `npm run format`.
+
 ## Структура
 
 ```

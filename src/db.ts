@@ -12,7 +12,9 @@ const MIGRATIONS_DIR = join(import.meta.dirname, "..", "migrations");
 
 /** Применяет SQL-миграции из migrations/ по порядку имён. Каждая — один раз. */
 export async function migrate(db: Db): Promise<string[]> {
-  await db.query(`CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
+  await db.query(
+    `CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
+  );
   const files = (await readdir(MIGRATIONS_DIR)).filter((f) => f.endsWith(".sql")).sort();
   const { rows } = await db.query<{ name: string }>(`SELECT name FROM schema_migrations`);
   const applied = new Set(rows.map((r) => r.name));

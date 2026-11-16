@@ -7,6 +7,9 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "migrate": "tsx src/migrate.ts",
+    "lint": "biome lint src test vitest.config.ts",
+    "format:check": "biome format src test vitest.config.ts",
+    "format": "biome format --write src test vitest.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -16,6 +19,7 @@
     "zod": "3.24.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.8",
     "@types/node": "22.10.5",
     "@types/pg": "8.11.10",
     "tsx": "4.19.2",

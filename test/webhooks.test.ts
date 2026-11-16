@@ -27,7 +27,11 @@ describe("POST /webhooks/order", () => {
   it("новое событие обновляет заказ", async () => {
     const o = apiOrder({ status: "pending" });
     await postWebhook(ctx.app, o);
-    const res = await postWebhook(ctx.app, { ...o, status: "paid", updatedAt: "2026-02-11T00:00:00Z" });
+    const res = await postWebhook(ctx.app, {
+      ...o,
+      status: "paid",
+      updatedAt: "2026-02-11T00:00:00Z",
+    });
     expect(res.json()).toEqual({ result: "updated" });
   });
 

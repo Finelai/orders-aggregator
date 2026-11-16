@@ -58,7 +58,8 @@ export function setupTestApp(): TestContext {
   const ctx = { api: new FakeApi() } as TestContext;
 
   beforeAll(async () => {
-    const url = process.env.TEST_DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/orders_test";
+    const url =
+      process.env.TEST_DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/orders_test";
     ctx.db = createDb(url);
     await migrate(ctx.db);
     ctx.container = createContainer(ctx.db, ctx.api);
@@ -84,6 +85,14 @@ export async function postWebhook(app: FastifyInstance, order: unknown) {
   return app.inject({ method: "POST", url: "/webhooks/order", payload: order as object });
 }
 
-export async function dailyTotals(app: FastifyInstance, customerId: string, from: string, to: string) {
-  return app.inject({ method: "GET", url: `/customers/${customerId}/daily-totals?from=${from}&to=${to}` });
+export async function dailyTotals(
+  app: FastifyInstance,
+  customerId: string,
+  from: string,
+  to: string,
+) {
+  return app.inject({
+    method: "GET",
+    url: `/customers/${customerId}/daily-totals?from=${from}&to=${to}`,
+  });
 }
