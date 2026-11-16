@@ -1,6 +1,6 @@
 import type { OrdersRepository } from "../repositories/orders.js";
 import { fromKop } from "../utils/money.js";
-import { dateAtOffset, datesBetween, tzOffsetMinutes } from "../utils/time.js";
+import { datesBetween } from "../utils/time.js";
 import type { CustomersService } from "./customers.js";
 
 export interface DailyTotal {
@@ -25,7 +25,12 @@ export class TotalsService {
    */
   async daily(customerId: string, from: string, to: string): Promise<DailyTotal[]> {
     const timezone = await this.customers.timezone(customerId);
-    const offset = tzOffsetMinutes(timezone, new Date());
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
 
     // Смещения таймзон в пределах ±14 ч: берём с запасом в сутки с каждой стороны
     const rows = await this.orders.paidCreatedBetween(
@@ -36,7 +41,11 @@ export class TotalsService {
 
     const sums = new Map(datesBetween(from, to).map((d) => [d, { gross: 0, net: 0 }]));
     for (const o of rows) {
-      const date = dateAtOffset(o.createdAt, offset);
+      const parts = formatter.formatToParts(o.createdAt);
+      const year = parts.find((part) => part.type === "year")?.value;
+      const month = parts.find((part) => part.type === "month")?.value;
+      const day = parts.find((part) => part.type === "day")?.value;
+      const date = `${year}-${month}-${day}`;
       const cur = sums.get(date);
       if (cur !== undefined) {
         cur.gross += o.amountKop;
