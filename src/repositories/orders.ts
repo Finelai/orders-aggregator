@@ -4,6 +4,7 @@ export interface Order {
   id: string;
   customerId: string;
   amountKop: number;
+  amountPaidKop: number;
   status: "pending" | "paid" | "refunded";
   createdAt: Date;
   updatedAt: Date;
@@ -13,6 +14,7 @@ interface Row {
   id: string;
   customer_id: string;
   amount_kop: string;
+  amount_paid_kop: string | null;
   status: Order["status"];
   created_at: Date;
   updated_at: Date;
@@ -22,6 +24,7 @@ const fromRow = (r: Row): Order => ({
   id: r.id,
   customerId: r.customer_id,
   amountKop: Number(r.amount_kop),
+  amountPaidKop: Number(r.amount_paid_kop ?? r.amount_kop),
   status: r.status,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
@@ -37,16 +40,47 @@ export class OrdersRepository {
 
   async save(o: Order): Promise<void> {
     await this.db.query(
-      `INSERT INTO orders (id, customer_id, amount_kop, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO orders (id, customer_id, amount_kop, amount_paid_kop, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (id) DO UPDATE SET
          customer_id = excluded.customer_id,
          amount_kop  = excluded.amount_kop,
+         amount_paid_kop = excluded.amount_paid_kop,
          status      = excluded.status,
          created_at  = excluded.created_at,
          updated_at  = excluded.updated_at`,
-      [o.id, o.customerId, o.amountKop, o.status, o.createdAt, o.updatedAt],
+      [o.id, o.customerId, o.amountKop, o.amountPaidKop, o.status, o.createdAt, o.updatedAt],
     );
+  }
+
+  /** Atomically applies newer versions or fills a missing paid amount for the same version. */
+  async apply(o: Order, hasPaidAmount: boolean): Promise<"created" | "updated" | "stale"> {
+    const { rows } = await this.db.query<{ created: boolean }>(
+      `INSERT INTO orders (id, customer_id, amount_kop, amount_paid_kop, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (id) DO UPDATE SET
+         customer_id = CASE WHEN excluded.updated_at > orders.updated_at THEN excluded.customer_id ELSE orders.customer_id END,
+         amount_kop = CASE WHEN excluded.updated_at > orders.updated_at THEN excluded.amount_kop ELSE orders.amount_kop END,
+         amount_paid_kop = excluded.amount_paid_kop,
+         status = CASE WHEN excluded.updated_at > orders.updated_at THEN excluded.status ELSE orders.status END,
+         created_at = CASE WHEN excluded.updated_at > orders.updated_at THEN excluded.created_at ELSE orders.created_at END,
+         updated_at = excluded.updated_at
+       WHERE excluded.updated_at > orders.updated_at
+          OR (excluded.updated_at = orders.updated_at AND orders.amount_paid_kop IS NULL
+              AND excluded.amount_paid_kop IS NOT NULL)
+       RETURNING (xmax = 0) AS created`,
+      [
+        o.id,
+        o.customerId,
+        o.amountKop,
+        hasPaidAmount ? o.amountPaidKop : null,
+        o.status,
+        o.createdAt,
+        o.updatedAt,
+      ],
+    );
+    const row = rows[0];
+    return !row ? "stale" : row.created ? "created" : "updated";
   }
 
   /** Оплаченные заказы клиента, созданные в [from, to). */

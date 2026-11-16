@@ -34,8 +34,8 @@ export const openapi: NonNullable<FastifyDynamicSwaggerOptions["openapi"]> = {
             description: "Поле внешнего API; сейчас не используется сервисом",
           },
           amountPaid: {
-            type: "number",
-            description: "Поле внешнего API; сейчас не используется сервисом",
+            oneOf: [{ type: "number" }, { type: "string" }],
+            description: "Оплаченная сумма в рублях. Если поле отсутствует, используется amount.",
           },
         },
       },
@@ -145,9 +145,16 @@ export const openapi: NonNullable<FastifyDynamicSwaggerOptions["openapi"]> = {
                   type: "array",
                   items: {
                     type: "object",
+                    required: ["date", "total", "gross", "discount", "net"],
                     properties: {
                       date: { type: "string", format: "date" },
-                      total: { type: "number", description: "Сумма в рублях" },
+                      total: {
+                        type: "number",
+                        description: "Сумма до скидки в рублях; равна gross",
+                      },
+                      gross: { type: "number", description: "Сумма до скидки в рублях" },
+                      discount: { type: "number", description: "Разница gross и net в рублях" },
+                      net: { type: "number", description: "Оплаченная сумма в рублях" },
                     },
                   },
                 },

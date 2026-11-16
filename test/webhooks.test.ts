@@ -39,4 +39,40 @@ describe("POST /webhooks/order", () => {
     const res = await postWebhook(ctx.app, { id: "x" });
     expect(res.statusCode).toBe(400);
   });
+
+  it("сохраняет оплату, обновляет её новой версией и игнорирует старые версии", async () => {
+    const order = apiOrder({ amount: 1000, amountPaid: "750.50" });
+    await postWebhook(ctx.app, order);
+    const initial = await ctx.db.query(`SELECT amount_paid_kop FROM orders WHERE id = $1`, [
+      order.id,
+    ]);
+    expect(Number(initial.rows[0].amount_paid_kop)).toBe(75050);
+    const newer = { ...order, amountPaid: 600, updatedAt: "2026-02-11T12:00:00Z" };
+    expect((await postWebhook(ctx.app, newer)).json()).toEqual({ result: "updated" });
+    expect((await postWebhook(ctx.app, order)).json()).toEqual({ result: "stale" });
+    expect((await postWebhook(ctx.app, { ...newer, amountPaid: 1 })).json()).toEqual({
+      result: "stale",
+    });
+    const { rows } = await ctx.db.query(`SELECT amount_paid_kop FROM orders WHERE id = $1`, [
+      order.id,
+    ]);
+    expect(Number(rows[0].amount_paid_kop)).toBe(60000);
+  });
+
+  it("отклоняет некорректную сумму оплаты", async () => {
+    for (const amountPaid of [-1, "invalid", null]) {
+      expect((await postWebhook(ctx.app, apiOrder({ amountPaid }))).statusCode).toBe(400);
+    }
+  });
+
+  it("сохраняет суммы в точных целых копейках", async () => {
+    const order = apiOrder({ amount: 1.15, amountPaid: 0.29 });
+    expect((await postWebhook(ctx.app, order)).statusCode).toBe(200);
+    const { rows } = await ctx.db.query(
+      `SELECT amount_kop, amount_paid_kop FROM orders WHERE id = $1`,
+      [order.id],
+    );
+    expect(Number(rows[0].amount_kop)).toBe(115);
+    expect(Number(rows[0].amount_paid_kop)).toBe(29);
+  });
 });
