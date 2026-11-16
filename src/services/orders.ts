@@ -27,10 +27,12 @@ export class OrdersService {
       );
     const o = parsed.data;
     try {
+      const amountKop = toKop(parseRub(o.amount));
       return {
         id: o.id,
         customerId: o.customerId,
-        amountKop: toKop(parseRub(o.amount)),
+        amountKop,
+        amountPaidKop: amountKop,
         status: o.status,
         createdAt: parseUtc(o.createdAt),
         updatedAt: parseUtc(o.updatedAt),
