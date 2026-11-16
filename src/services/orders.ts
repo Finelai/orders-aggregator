@@ -9,6 +9,7 @@ const ExternalOrder = z.object({
   id: z.string().min(1),
   customerId: z.string().min(1),
   amount: z.union([z.number(), z.string()]),
+  amountPaid: z.union([z.number(), z.string()]).optional(),
   status: z.enum(["pending", "paid", "refunded"]),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -32,7 +33,7 @@ export class OrdersService {
         id: o.id,
         customerId: o.customerId,
         amountKop,
-        amountPaidKop: amountKop,
+        amountPaidKop: o.amountPaid === undefined ? amountKop : toKop(parseRub(o.amountPaid)),
         status: o.status,
         createdAt: parseUtc(o.createdAt),
         updatedAt: parseUtc(o.updatedAt),
@@ -45,13 +46,12 @@ export class OrdersService {
   /**
    * Применяет версию заказа (из синка или вебхука).
    * Вебхуки приходят с повторами и не по порядку, поэтому версию сохраняем,
-   * только если она новее уже сохранённой (по updatedAt).
+   * только если она новее уже сохранённой (по updatedAt). При совпадении
+   * версии можно заполнить ранее неизвестную оплаченную сумму.
    */
   async apply(raw: unknown): Promise<ApplyResult> {
     const incoming = this.normalize(raw);
-    const current = await this.orders.get(incoming.id);
-    if (current && current.updatedAt.getTime() >= incoming.updatedAt.getTime()) return "stale";
-    await this.orders.save(incoming);
-    return current ? "updated" : "created";
+    const hasPaidAmount = (raw as { amountPaid?: unknown }).amountPaid !== undefined;
+    return this.orders.apply(incoming, hasPaidAmount);
   }
 }
