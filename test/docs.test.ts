@@ -21,6 +21,12 @@ describe("API documentation", () => {
         spec.json().paths["/webhooks/order"].post.requestBody.content["application/json"].example
           .customerId,
       ).toBe("c_7");
+      const dailySchema =
+        spec.json().paths["/customers/{id}/daily-totals"].get.responses["200"].content[
+          "application/json"
+        ].schema.items;
+      expect(dailySchema.required).toEqual(["date", "total", "gross", "discount", "net"]);
+      expect(Object.keys(dailySchema.properties)).toEqual(dailySchema.required);
     } finally {
       await app.close();
     }
