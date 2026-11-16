@@ -1,5 +1,8 @@
+import swagger from "@fastify/swagger";
+import swaggerUI from "@fastify/swagger-ui";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { Container } from "./container.js";
+import { openapi } from "./openapi.js";
 import { AppError } from "./errors.js";
 import { customerRoutes } from "./routes/customers.js";
 import { syncRoutes } from "./routes/sync.js";
@@ -16,9 +19,13 @@ export function buildApp(c: Container, opts: { logger?: boolean } = {}): Fastify
     return reply.code(500).send({ error: "internal", message: "Internal error" });
   });
 
-  app.get("/health", async () => ({ status: "ok" }));
-  syncRoutes(app, c);
-  webhookRoutes(app, c);
-  customerRoutes(app, c);
+  app.register(swagger, { openapi, hideUntagged: true });
+  app.register(swaggerUI, { routePrefix: "/docs" });
+  app.register(async (routes) => {
+    routes.get("/health", async () => ({ status: "ok" }));
+    syncRoutes(routes, c);
+    webhookRoutes(routes, c);
+    customerRoutes(routes, c);
+  });
   return app;
 }
